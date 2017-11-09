@@ -42,7 +42,6 @@ public class SplayTree<Key extends Comparable<Key>, Value> {
     private void split(Node vertex){
        /*найти ключ, меньше либо равный ключу входящего узла
         *сделать для него splay
-        *
         */
     }
 
