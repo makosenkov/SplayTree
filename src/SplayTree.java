@@ -10,6 +10,9 @@ public class SplayTree<Key extends Comparable<Key>, Value> {
         Node(Key key, Value value) {
             this.key = key;
             this.value = value;
+            left = null;
+            right = null;
+            parent = null;
         }
     }
 
@@ -23,30 +26,48 @@ public class SplayTree<Key extends Comparable<Key>, Value> {
         return vertex.parent == null;
     }
 
-    public void split(Node vertex) {
+    public void put(Key key, Value value) {
+        //Положить по принципам обычного BST, сделать splay
+        if (treeIsEmpty()) {
+            root = new Node(key, value);
+        }
 
+        int comparison = key.compareTo(root.key);
+
+        if (comparison < 0){
+
+        }
     }
 
-    private Node rightZig(Node parent) {
+    private void split(Node vertex){
+       /*найти ключ, меньше либо равный ключу входящего узла
+        *сделать для него splay
+        */
+    }
+
+    private void merge(Node tree1, Node tree2){
+        Node newRoot = splay(maxNode(tree1));
+        newRoot.right = tree2;
+    }
+
+    private void rightZig(Node parent) {
         Node axis = parent.left; //Берем осевой узел - левый ребенок родителя
         parent.left = axis.right; //Правый ребенок осевого узла становится левым ребенком родителя
         axis.right = parent; //Осевой узел "выплывает" наверх, становясь новым родителем
-        return axis;
     }
 
     //Левый поворот аналогично правому, но в зеркальном отражении
-    private Node leftZig(Node parent) {
+    private void leftZig(Node parent) {
         Node axis = parent.right;
         parent.right = axis.left;
         axis.left = parent;
-        return axis;
     }
 
     private Node splay(Node vertex) {
         if (isRoot(vertex)) return vertex;
         Node parent = vertex.parent;
         Node gparent = parent.parent;
-        do {
+        while (!isRoot(vertex)){
             //Zig-Zig
             if (parent == gparent.left && vertex == parent.left) {
                 rightZig(parent);
@@ -65,7 +86,14 @@ public class SplayTree<Key extends Comparable<Key>, Value> {
                 rightZig(vertex);
                 leftZig(parent);
             }
-        } while (!isRoot(vertex));
+        }
         return vertex;
+    }
+
+    private Node maxNode(Node vertex){
+        if (vertex.right != null){
+            return maxNode(vertex.right);
+        }
+        else return vertex;
     }
 }
