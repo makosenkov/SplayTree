@@ -161,6 +161,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         while (current.left != null){
             current = current.left;
         }
+        splay(current);
         return current.value;
     }
 
@@ -171,6 +172,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         while (current.right != null){
             current = current.right;
         }
+        splay(current);
         return current.value;
     }
 }
