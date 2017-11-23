@@ -21,10 +21,6 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     private int size = 0;
 
-    private boolean treeIsEmpty() {
-        return root == null;
-    }
-
     private boolean isRoot(Node<V> vertex) {
         return vertex.parent == null;
     }
@@ -37,33 +33,75 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         if (comparison == 0) return false;
         Node<V> newNode = new Node<V>(value);
         if (closest == null) root = newNode;
-        else if (comparison < 0){
+        else if (comparison < 0) {
             assert closest.left == null;
             closest.left = newNode;
-        }else{
+        } else {
             assert closest.right == null;
             closest.right = newNode;
         }
+        splay(newNode);
         size++;
         return true;
     }
 
+    @Override
+    public boolean remove(Object o) {
+        return false;
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends V> c) {
+        for(V element : c){
+            if (!add(element)) return false;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public void clear() {
+
+    }
+
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        for(Object element : c){
+            if (!this.contains(element)) return false;
+        }
+        return true;
+    }
+
     private Node<V> find(V value) {
-        if (treeIsEmpty()) return null;
+        if (isEmpty()) return null;
         return find(root, value);
     }
 
     private Node<V> find(Node<V> start, V value) {
         int comparison = value.compareTo(start.value);
-        if (comparison == 0) return start;
-        else if (comparison > 0) {
-            if (start.right != null) return start;
-            return find(start.right, value);
-        } else {
-            if (start.left != null) return start;
-            return find(start.left, value);
+        Node<V> current = root;
+        while (current != null) {
+            if (comparison > 0) {
+                if (start.right == null) return start;
+                current = current.right;
+            } else if (comparison < 0) {
+                if (start.left == null) return start;
+                current = current.left;
+            }else{
+                splay(current);
+                return current;
+            }
         }
-
+        return null;
     }
 
     private void split(Node<V> vertex) {
@@ -130,8 +168,30 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     }
 
     @Override
+    public Object[] toArray() {
+        return new Object[0];
+    }
+
+    @Override
+    public <T> T[] toArray(T[] a) {
+        return null;
+    }
+
+    @Override
     public int size() {
         return size;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return root == null;
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        V v = (V) o;
+        Node<V> closest = find(v);
+        return closest != null && closest.value.compareTo(v) == 0;
     }
 
     @Override
@@ -141,24 +201,72 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public SortedSet<V> subSet(V fromElement, V toElement) {
-        return null;
+        if (fromElement.compareTo(this.first()) < 0 || fromElement.compareTo(this.last()) > 0 ||
+                toElement.compareTo(this.first()) < 0 || toElement.compareTo(this.last()) > 0 ||
+                fromElement.compareTo(toElement) > 0)
+            throw new IllegalArgumentException();
+        return this.headSet(toElement).tailSet(fromElement);
     }
 
     @Override
     public SortedSet<V> headSet(V toElement) {
-        return null;
+        if (toElement == null) throw new NullPointerException();
+        if (root == null) throw new NoSuchElementException();
+        Node<V> current = root;
+        SplayTree<V> newSet = new SplayTree<>();
+        while (toElement.compareTo(current.value) != 0) {
+            if (toElement.compareTo(current.value) > 0) {
+                newSet.add(current.value);
+                if (current.left != null) addBranch(current.left, newSet);
+                if (current.right != null) current = current.right;
+                else break;
+            } else {
+                if (current.left != null) current = current.left;
+                else break;
+            }
+        }
+        if (toElement.compareTo(current.value) == 0) {
+            if (current.left != null) addBranch(current.left, newSet);
+        }
+        return newSet;
     }
 
     @Override
     public SortedSet<V> tailSet(V fromElement) {
-        return null;
+        if (fromElement == null) throw new NullPointerException();
+        if (root == null) throw new NoSuchElementException();
+        Node<V> current = root;
+        SplayTree<V> newSet = new SplayTree<>();
+        while (fromElement.compareTo(current.value) != 0) {
+            if (fromElement.compareTo(current.value) < 0) {
+                newSet.add(current.value);
+                if (current.right != null) addBranch(current.right, newSet);
+                if (current.left != null) current = current.left;
+                else
+                    break;
+            } else {
+                if (current.right != null) current = current.right;
+                else break;
+            }
+        }
+        if (fromElement.compareTo(current.value) == 0) {
+            newSet.add(current.value);
+            if (current.right != null) addBranch(current.right, newSet);
+        }
+        return newSet;
+    }
+
+    private void addBranch(Node<V> node, SplayTree<V> tree) {
+        tree.add(node.value);
+        if (node.left != null) addBranch(node.left, tree);
+        if (node.right != null) addBranch(node.right, tree);
     }
 
     @Override
     public V first() {
-        if (treeIsEmpty()) throw new NoSuchElementException();
+        if (isEmpty()) throw new NoSuchElementException();
         Node<V> current = root;
-        while (current.left != null){
+        while (current.left != null) {
             current = current.left;
         }
         splay(current);
@@ -167,9 +275,9 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public V last() {
-        if (treeIsEmpty()) throw new NoSuchElementException();
+        if (isEmpty()) throw new NoSuchElementException();
         Node<V> current = root;
-        while (current.right != null){
+        while (current.right != null) {
             current = current.right;
         }
         splay(current);
