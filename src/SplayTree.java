@@ -31,7 +31,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         Node<V> closest = find(value);
         int comparison = closest == null ? -1 : value.compareTo(closest.value);
         if (comparison == 0) return false;
-        Node<V> newNode = new Node<V>(value);
+        Node<V> newNode = new Node<>(value);
         if (closest == null) root = newNode;
         else if (comparison < 0) {
             assert closest.left == null;
@@ -45,14 +45,59 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         return true;
     }
 
+    boolean checkInvariant() {
+        return root == null || checkInvariant(root);
+    }
+
+    private boolean checkInvariant(Node<V> node) {
+        Node<V> left = node.left;
+        if (left != null && (left.value.compareTo(node.value) >= 0 || !checkInvariant(left))) return false;
+        Node<V> right = node.right;
+        return right == null || right.value.compareTo(node.value) > 0 && checkInvariant(right);
+    }
+
     @Override
     public boolean remove(Object o) {
-        return false;
+        if (o == null || root == null) return false;
+        @SuppressWarnings("unchecked")
+        Node<V> it = find((V) o);
+        assert it != null;
+        Node<V> parent = it.parent;
+
+        //Нет потомков
+        if (it.left == it.right) {
+            if (parent != null) {
+                if (parent.left == it) parent.left = null;
+                else parent.right = null;
+            } else root = null;
+        }
+
+        //Один потомок
+        else if (it.left == null || it.right == null) {
+            if (parent != null) {
+                if (it.left != null) {
+                    if (parent.left == it) parent.left = it.left;
+                    else parent.right = it.left;
+                } else {
+                    if (parent.left == it) parent.left = it.right;
+                    else parent.right = it.right;
+                }
+            } else {
+                if (it.left != null) root = it.left;
+                else root = it.right;
+            }
+        }
+
+        //Два потомка
+        else {
+            //TODO
+        }
+        return true;
     }
 
     @Override
     public boolean addAll(Collection<? extends V> c) {
-        for(V element : c){
+        for (V element : c) {
             if (!add(element)) return false;
         }
         return true;
@@ -65,17 +110,23 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        return false;
+        for (Object object : c) {
+            if (!remove(object)) return false;
+        }
+        return true;
     }
 
     @Override
     public void clear() {
-
+        if (!isEmpty())
+            for (V object : this) {
+                remove(object);
+            }
     }
 
     @Override
     public boolean containsAll(Collection<?> c) {
-        for(Object element : c){
+        for (Object element : c) {
             if (!this.contains(element)) return false;
         }
         return true;
@@ -96,7 +147,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
             } else if (comparison < 0) {
                 if (start.left == null) return start;
                 current = current.left;
-            }else{
+            } else {
                 splay(current);
                 return current;
             }
@@ -108,6 +159,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
        /*найти ключ, меньше либо равный ключу входящего узла
         *сделать для него splay
         */
+        //TODO
     }
 
     private void merge(Node<V> tree1, Node<V> tree2) {
@@ -189,6 +241,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public boolean contains(Object o) {
+        @SuppressWarnings("unchecked")
         V v = (V) o;
         Node<V> closest = find(v);
         return closest != null && closest.value.compareTo(v) == 0;
