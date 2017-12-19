@@ -17,36 +17,35 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         }
     }
 
-    private Node<V> root = null;
+    private Node<V> root;
 
     private int size = 0;
 
     private boolean isRoot(Node<V> vertex) {
-        return vertex.parent == null;
+        return vertex == root;
     }
 
     public boolean add(V value) {
-        //Добавление по принципам обычного BST, только
-        // в конце делается splay для добавленного узла
-        Node<V> closest = find(value);
-        int comparison = closest == null ? -1 : value.compareTo(closest.value);
-        if (comparison == 0) return false;
-        Node<V> newNode = new Node<>(value);
-        if (closest == null) root = newNode;
-        else if (comparison < 0) {
-            assert closest.left == null;
-            closest.left = newNode;
-        } else {
-            assert closest.right == null;
-            closest.right = newNode;
+        Node<V> preInsertPlace = null;
+        Node<V> insertPlace = root;
+        while (insertPlace != null) {
+            preInsertPlace = insertPlace;
+            if (value.compareTo(insertPlace.value) > 0)
+                insertPlace = insertPlace.right;
+            else if (value.compareTo(insertPlace.value) < 0)
+                insertPlace = insertPlace.left;
         }
-        splay(newNode);
+        Node<V> insertElement = new Node(value);
+        insertElement.parent = preInsertPlace;
+        if (preInsertPlace == null)
+            root = insertElement;
+        else if (insertElement.value.compareTo(preInsertPlace.value) < 0)
+            preInsertPlace.left = insertElement;
+        else if (insertElement.value.compareTo(preInsertPlace.value) > 0)
+            preInsertPlace.right = insertElement;
+        splay(insertElement);
         size++;
         return true;
-    }
-
-    boolean checkInvariant() {
-        return root == null || checkInvariant(root);
     }
 
     private boolean checkInvariant(Node<V> node) {
@@ -61,44 +60,16 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         if (o == null || root == null) return false;
         @SuppressWarnings("unchecked")
         Node<V> it = find((V) o);
-        assert it != null;
-        Node<V> parent = it.parent;
-
-        //Нет потомков
-        if (it.left == it.right) {
-            if (parent != null) {
-                if (parent.left == it) parent.left = null;
-                else parent.right = null;
-            } else root = null;
-        }
-
-        //Один потомок
-        else if (it.left == null || it.right == null) {
-            if (parent != null) {
-                if (it.left != null) {
-                    if (parent.left == it) parent.left = it.left;
-                    else parent.right = it.left;
-                } else {
-                    if (parent.left == it) parent.left = it.right;
-                    else parent.right = it.right;
-                }
-            } else {
-                if (it.left != null) root = it.left;
-                else root = it.right;
-            }
-        }
-
-        //Два потомка
-        else {
-            //TODO
-        }
+        splay(it);
+        merge(it.left, it.right);
+        it.left.parent = null;
         return true;
     }
 
     @Override
     public boolean addAll(Collection<? extends V> c) {
         for (V element : c) {
-            if (!add(element)) return false;
+            add(element);
         }
         return true;
     }
@@ -127,32 +98,24 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     @Override
     public boolean containsAll(Collection<?> c) {
         for (Object element : c) {
-            if (!this.contains(element)) return false;
+            if (!contains(element)) return false;
         }
         return true;
     }
 
     private Node<V> find(V value) {
-        if (isEmpty()) return null;
-        return find(root, value);
-    }
-
-    private Node<V> find(Node<V> start, V value) {
-        int comparison = value.compareTo(start.value);
         Node<V> current = root;
         while (current != null) {
-            if (comparison > 0) {
-                if (start.right == null) return start;
-                current = current.right;
-            } else if (comparison < 0) {
-                if (start.left == null) return start;
-                current = current.left;
-            } else {
-                splay(current);
+            if (value.compareTo(current.value) == 0)
                 return current;
+            else if (value.compareTo(root.value) < 0) {
+                current = current.left;
+            } else if (value.compareTo(root.value) > 0) {
+                current = current.left;
             }
         }
         return null;
+
     }
 
     private void split(Node<V> vertex) {
@@ -163,49 +126,65 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     }
 
     private void merge(Node<V> tree1, Node<V> tree2) {
-        Node<V> newRoot = splay(maxNode(tree1));
+        splay(maxNode(tree1));
+        Node<V> newRoot = root;
         newRoot.right = tree2;
     }
 
-    private void rightZig(Node<V> parent) {
-        Node<V> axis = parent.left; //Берем осевой узел - левый ребенок родителя
-        parent.left = axis.right; //Правый ребенок осевого узла становится левым ребенком родителя
-        axis.right = parent; //Осевой узел "выплывает" наверх, становясь новым родителем
+    private void rightRotate(Node<V> parent) {
+            Node<V> axis = parent.left;
+            parent.left = axis.right;
+            if (axis.right != null)
+                axis.right.parent = parent;
+            transplant(parent, axis);
+            axis.right = parent;
+            axis.right.parent = axis;
     }
 
     //Левый поворот аналогично правому, но в зеркальном отражении
-    private void leftZig(Node<V> parent) {
-        Node<V> axis = parent.right;
-        parent.right = axis.left;
-        axis.left = parent;
+    private void leftRotate(Node<V> parent) {
+            Node<V> axis = parent.right;
+            parent.right = axis.left;
+            if (axis.left != null)
+                axis.left.parent = parent;
+            transplant(parent, axis);
+            axis.left = parent;
+            axis.left.parent = axis;
     }
 
-    private Node<V> splay(Node<V> vertex) {
-        if (isRoot(vertex)) return vertex;
-        Node<V> parent = vertex.parent;
-        Node<V> gparent = parent.parent;
-        while (!isRoot(vertex)) {
-            //Zig-Zig
-            if (parent == gparent.left && vertex == parent.left) {
-                rightZig(parent);
-                rightZig(vertex);
+    private void transplant(Node<V> parent, Node<V> child) {
+        if (parent.parent == null)
+            root = child;
+        else if (parent == parent.parent.left)
+            parent.parent.left = child;
+        else if (parent == parent.parent.right)
+            parent.parent.right = child;
+        if (child != null)
+            child.parent = parent.parent;
+    }
+
+    private void splay(Node<V> element) {
+        while (element.parent != null) {
+            if (isRoot(element.parent)) {
+                if (element == element.parent.left)
+                    rightRotate(element);
+                else
+                    leftRotate(element);
+            } else if (element == element.parent.left && element.parent == element.parent.parent.left) {
+                rightRotate(element.parent.parent);
+                rightRotate(element.parent);
+            } else if (element == element.parent.right && element.parent == element.parent.parent.right) {
+                leftRotate(element.parent.parent);
+                leftRotate(element.parent);
+            } else if (element == element.parent.right && element.parent == element.parent.parent.left) {
+                leftRotate(element.parent);
+                rightRotate(element.parent.parent);
+            } else if (element == element.parent.left && element.parent == element.parent.parent.right) {
+                rightRotate(element.parent);
+                leftRotate(element.parent.parent);
             }
-            if (parent == gparent.right && vertex == parent.right) {
-                leftZig(parent);
-                leftZig(vertex);
-            }
-            //Zig-Zag
-            if (parent == gparent.left && vertex == parent.right) {
-                leftZig(vertex);
-                rightZig(parent);
-            }
-            if (parent == gparent.left && vertex == parent.right) {
-                rightZig(vertex);
-                leftZig(parent);
-            }
-            if (vertex.parent == null) root = vertex;
         }
-        return vertex;
+        root = element;
     }
 
     private Node<V> maxNode(Node<V> vertex) {
