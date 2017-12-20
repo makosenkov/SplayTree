@@ -22,7 +22,6 @@ public class Tests {
         assertTrue(splayints.contains(10));
         assertTrue(splayints.contains(9));
         assertTrue(splayints.contains(12));
-        splayints.clear();
     }
 
     @Test
@@ -37,8 +36,10 @@ public class Tests {
         splayints.addAll(ints);
         splayints.remove(14);
         assertFalse(splayints.contains(14));
+        assertEquals(ints.size()-1, splayints.size());
         splayints.remove(10);
         assertFalse(splayints.contains(10));
+        assertEquals(ints.size()-2, splayints.size());
     }
 
     @Test

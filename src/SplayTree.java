@@ -61,9 +61,8 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         if (o == null || root == null) return false;
         @SuppressWarnings("unchecked")
         Node<V> it = find((V) o);
-        splay(it);
-        merge(it.left, it.right);
-        it.left.parent = null;
+        root = merge(it.left, it.right);
+        size--;
         return true;
     }
 
@@ -104,93 +103,139 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     private Node<V> find(V value) {
         Node<V> current = root;
         while (current != null) {
-            if (value.compareTo(current.value) == 0)
+            if (value.compareTo(current.value) == 0) {
+                splay(current);
                 return current;
-            else if (value.compareTo(root.value) < 0) {
+            } else if (value.compareTo(current.value) < 0) {
                 current = current.left;
-            } else if (value.compareTo(root.value) > 0) {
-                current = current.left;
+            } else if (value.compareTo(current.value) > 0) {
+                current = current.right;
             }
         }
+
         return null;
     }
 
-    private void merge(Node<V> tree1, Node<V> tree2) {
-        splay(maxNode(tree1));
-        Node<V> newRoot = root;
-        newRoot.right = tree2;
-    }
-
-    private void rightRotate(Node<V> p) {
-        Node<V> x = p.left;
-        Node<V> right = x.right;
-        Node<V> left = x.left;
-        Node<V> parent = p.parent;
-
-        x.right = p;
-        p.parent = x;
-        x.parent = parent;
-        if (right != null){
-            p.left = right;
-            p.left.parent = p;
+    private Node<V> merge(Node<V> tree1, Node<V> tree2) {
+        if (tree1 == null || tree2 == null) {
+            if (tree1 == null)
+                return tree2;
+            return tree1;
+        } else {
+            tree1 = find((maxNode(tree1)).value);
+            tree1.right = tree2;
+            return tree1;
         }
-        else
-            p.left = null;
-        if (left != null){
-            x.left = left;
-            x.left.parent = p;
-        }
-        else
-            x.left = null;
-    }
-
-    private void leftRotate(Node<V> p) {
-        Node<V> x = p.right;
-        Node<V> left = x.left;
-        Node<V> right = x.right;
-        Node<V> parent = p.parent;
-        x.left = p;
-        p.parent = x;
-        x.parent = parent;
-        if (left != null){
-            p.right = left;
-            p.left.parent = p;
-        }
-        else
-            p.right = null;
-        if (right != null){
-            x.right = right;
-            x.right.parent = p;
-        }
-        else
-            x.right = null;
     }
 
     private void splay(Node<V> element) {
         while (!isRoot(element)) {
-            if (isRoot(element.parent)) {
-                if (element == element.parent.left) {
-                    rightRotate(element.parent);
-                    root = element;
+            if (element.parent == null) return;
+
+            Node<V> parent = element.parent;
+            Node<V> gparent = parent.parent;
+
+            if (gparent == null) {
+                if (parent.left == element) {
+                    rightMoveToRoot(parent, element);
+                    return;
                 } else {
-                    leftRotate(element.parent);
-                    root = element;
+                    leftMoveToRoot(parent, element);
+                    return;
                 }
-            } else if (element == element.parent.left && element.parent == element.parent.parent.left) {
-                rightRotate(element.parent.parent);
-                rightRotate(element.parent);
-            } else if (element == element.parent.right && element.parent == element.parent.parent.right) {
-                leftRotate(element.parent.parent);
-                leftRotate(element.parent);
-            } else if (element == element.parent.right && element.parent == element.parent.parent.left) {
-                leftRotate(element.parent);
-                rightRotate(element.parent);
-            } else if (element == element.parent.left && element.parent == element.parent.parent.right) {
-                rightRotate(element.parent);
-                leftRotate(element.parent);
+            } else {
+                if (gparent.left == parent && parent.left == element) {
+                    rotateLeft(gparent, parent);
+                    rotateLeft(parent, element);
+                } else if (gparent.right == parent && parent.right == element) {
+                    rotateRight(gparent, parent);
+                    rotateRight(parent, element);
+                } else if (gparent.left == parent && parent.right == element) {
+                    rightZigZag(gparent, parent, element);
+                } else if (gparent.right == parent && parent.left == element) {
+                    leftZigZag(gparent, parent, element);
+                }
             }
+
         }
-        root = element;
+    }
+
+    private void rightMoveToRoot(Node<V> parent, Node<V> node) {
+        Node<V> right = node.right;
+        node.right = parent;
+        parent.parent = node;
+        parent.left = right;
+        if (right != null) right.parent = parent;
+        node.parent = null;
+        root = node;
+
+    }
+
+    private void leftMoveToRoot(Node<V> parent, Node<V> node) {
+        Node<V> left = node.left;
+        node.left = parent;
+        node.parent = null;
+        root = node;
+        parent.parent = node;
+        parent.right = left;
+        if (left != null)
+            left.parent = parent;
+    }
+
+    private void rotateLeft(Node<V> parent, Node<V> node) {
+        Node<V> right = node.right;
+        node.right = parent;
+        node.parent = parent.parent;
+        setParent(parent, node);
+        parent.parent = node;
+        parent.left = right;
+        if (right != null) right.parent = parent;
+        if (node.parent == null) root = node;
+    }
+
+    private void rotateRight(Node<V> parent, Node<V> node) {
+        Node<V> left = node.left;
+        node.left = parent;
+        node.parent = parent.parent;
+        setParent(parent, node);
+        parent.parent = node;
+        parent.right = left;
+        if (left != null) left.parent = parent;
+        if (node.parent == null) root = node;
+    }
+
+    private void rightZigZag(Node<V> gparent, Node<V> parent, Node<V> node) {
+
+        Node<V> left = node.left;
+        gparent.left = node;
+        node.parent = gparent;
+        node.left = parent;
+        parent.parent = node;
+        parent.right = left;
+        if (left != null) left.parent = parent;
+
+        rotateLeft(gparent, node);
+    }
+
+    private void leftZigZag(Node<V> gparent, Node<V> parent, Node<V> node) {
+
+        Node<V> right = node.right;
+
+        gparent.right = node;
+        node.parent = gparent;
+        node.right = parent;
+        parent.parent = node;
+        parent.left = right;
+        if (right != null) right.parent = parent;
+
+        rotateRight(gparent, node);
+    }
+
+    private void setParent(Node<V> previousSon, Node<V> newSon) {
+        if (newSon.parent != null) {
+            if (previousSon.parent.left == previousSon) previousSon.parent.left = newSon;
+            else previousSon.parent.right = newSon;
+        }
     }
 
     private Node<V> maxNode(Node<V> vertex) {
@@ -251,19 +296,19 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         private Node<V> findNext() {
             Node<V> next = current;
 
-            if (next == null){
+            if (next == null) {
                 next = first();
                 return next;
             }
 
-            if (next.right != null){
+            if (next.right != null) {
                 next = next.right;
                 while (next.left != null) next = next.left;
                 return next;
             }
 
-            while (next.parent != null){
-                if (next.parent.left == next){
+            while (next.parent != null) {
+                if (next.parent.left == next) {
                     next = next.parent;
                     return next;
                 }
@@ -274,7 +319,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
         }
 
-        private Node<V> first(){
+        private Node<V> first() {
             if (root == null) throw new NoSuchElementException();
             Node<V> result = root;
             while (result.left != null) {
