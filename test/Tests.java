@@ -1,9 +1,8 @@
 import org.junit.*;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.SortedSet;
+import java.util.*;
 
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.assertEquals;
 
@@ -32,4 +31,32 @@ public class Tests {
         boolean bool = splayints.containsAll(ints);
         assertTrue(bool);
     }
+
+    @Test
+    public void remove(){
+        splayints.addAll(ints);
+        splayints.remove(14);
+        assertFalse(splayints.contains(14));
+        splayints.remove(10);
+        assertFalse(splayints.contains(10));
+    }
+
+    @Test
+    public void iteratorTest(){
+        splayints.addAll(ints);
+        Iterator iterator = splayints.iterator();
+        iterator.hasNext();
+        Assert.assertEquals(7, iterator.next());
+        Assert.assertEquals(8, iterator.next());
+        Assert.assertEquals(9, iterator.next());
+        Assert.assertEquals(10, iterator.next());
+        Assert.assertEquals(11, iterator.next());
+        Assert.assertEquals(12, iterator.next());
+        Assert.assertEquals(13, iterator.next());
+        Assert.assertEquals(14, iterator.next());
+        Assert.assertEquals(15, iterator.next());
+        Assert.assertEquals(18, iterator.next());
+        Assert.assertEquals(20, iterator.next());
+    }
+
 }

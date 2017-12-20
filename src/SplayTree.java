@@ -3,6 +3,7 @@ import java.util.*;
 /**
  * Реализация Splay-дерева (расширяющееся, "выворачивающееся" бинарное дерево)
  */
+
 public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implements SortedSet<V> {
 
 
@@ -89,10 +90,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public void clear() {
-        if (!isEmpty())
-            for (V object : this) {
-                remove(object);
-            }
+        root = null;
     }
 
     @Override
@@ -115,14 +113,6 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
             }
         }
         return null;
-
-    }
-
-    private void split(Node<V> vertex) {
-       /*найти ключ, меньше либо равный ключу входящего узла
-        *сделать для него splay
-        */
-        //TODO
     }
 
     private void merge(Node<V> tree1, Node<V> tree2) {
@@ -131,45 +121,61 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         newRoot.right = tree2;
     }
 
-    private void rightRotate(Node<V> parent) {
-            Node<V> axis = parent.left;
-            parent.left = axis.right;
-            if (axis.right != null)
-                axis.right.parent = parent;
-            transplant(parent, axis);
-            axis.right = parent;
-            axis.right.parent = axis;
+    private void rightRotate(Node<V> p) {
+        Node<V> x = p.left;
+        Node<V> right = x.right;
+        Node<V> left = x.left;
+        Node<V> parent = p.parent;
+
+        x.right = p;
+        p.parent = x;
+        x.parent = parent;
+        if (right != null){
+            p.left = right;
+            p.left.parent = p;
+        }
+        else
+            p.left = null;
+        if (left != null){
+            x.left = left;
+            x.left.parent = p;
+        }
+        else
+            x.left = null;
     }
 
-    //Левый поворот аналогично правому, но в зеркальном отражении
-    private void leftRotate(Node<V> parent) {
-            Node<V> axis = parent.right;
-            parent.right = axis.left;
-            if (axis.left != null)
-                axis.left.parent = parent;
-            transplant(parent, axis);
-            axis.left = parent;
-            axis.left.parent = axis;
-    }
-
-    private void transplant(Node<V> parent, Node<V> child) {
-        if (parent.parent == null)
-            root = child;
-        else if (parent == parent.parent.left)
-            parent.parent.left = child;
-        else if (parent == parent.parent.right)
-            parent.parent.right = child;
-        if (child != null)
-            child.parent = parent.parent;
+    private void leftRotate(Node<V> p) {
+        Node<V> x = p.right;
+        Node<V> left = x.left;
+        Node<V> right = x.right;
+        Node<V> parent = p.parent;
+        x.left = p;
+        p.parent = x;
+        x.parent = parent;
+        if (left != null){
+            p.right = left;
+            p.left.parent = p;
+        }
+        else
+            p.right = null;
+        if (right != null){
+            x.right = right;
+            x.right.parent = p;
+        }
+        else
+            x.right = null;
     }
 
     private void splay(Node<V> element) {
-        while (element.parent != null) {
+        while (!isRoot(element)) {
             if (isRoot(element.parent)) {
-                if (element == element.parent.left)
-                    rightRotate(element);
-                else
-                    leftRotate(element);
+                if (element == element.parent.left) {
+                    rightRotate(element.parent);
+                    root = element;
+                } else {
+                    leftRotate(element.parent);
+                    root = element;
+                }
             } else if (element == element.parent.left && element.parent == element.parent.parent.left) {
                 rightRotate(element.parent.parent);
                 rightRotate(element.parent);
@@ -178,10 +184,10 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
                 leftRotate(element.parent);
             } else if (element == element.parent.right && element.parent == element.parent.parent.left) {
                 leftRotate(element.parent);
-                rightRotate(element.parent.parent);
+                rightRotate(element.parent);
             } else if (element == element.parent.left && element.parent == element.parent.parent.right) {
                 rightRotate(element.parent);
-                leftRotate(element.parent.parent);
+                leftRotate(element.parent);
             }
         }
         root = element;
@@ -195,12 +201,19 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public Iterator<V> iterator() {
-        return null;
+        return new SplayTreeIterator();
     }
 
     @Override
     public Object[] toArray() {
-        return new Object[0];
+        Object[] array = new Object[size];
+        Iterator<V> iterator = this.iterator();
+        int i = 0;
+        while (iterator.hasNext()) {
+            array[i] = iterator.next();
+            i++;
+        }
+        return array;
     }
 
     @Override
@@ -230,6 +243,64 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     public Comparator<? super V> comparator() {
         return null;
     }
+
+    public class SplayTreeIterator implements Iterator<V> {
+
+        private Node<V> current = null;
+
+        private Node<V> findNext() {
+            Node<V> next = current;
+
+            if (next == null){
+                next = first();
+                return next;
+            }
+
+            if (next.right != null){
+                next = next.right;
+                while (next.left != null) next = next.left;
+                return next;
+            }
+
+            while (next.parent != null){
+                if (next.parent.left == next){
+                    next = next.parent;
+                    return next;
+                }
+                next = next.parent;
+            }
+
+            return null;
+
+        }
+
+        private Node<V> first(){
+            if (root == null) throw new NoSuchElementException();
+            Node<V> result = root;
+            while (result.left != null) {
+                result = result.left;
+            }
+            return result;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return findNext() != null;
+        }
+
+        @Override
+        public V next() {
+            current = findNext();
+            if (current == null) throw new NoSuchElementException();
+            return current.value;
+        }
+
+        @Override
+        public void remove() {
+            SplayTree.this.remove(current);
+        }
+    }
+
 
     @Override
     public SortedSet<V> subSet(V fromElement, V toElement) {
