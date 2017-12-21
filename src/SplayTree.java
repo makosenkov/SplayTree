@@ -49,13 +49,6 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         return true;
     }
 
-    private boolean checkInvariant(Node<V> node) {
-        Node<V> left = node.left;
-        if (left != null && (left.value.compareTo(node.value) >= 0 || !checkInvariant(left))) return false;
-        Node<V> right = node.right;
-        return right == null || right.value.compareTo(node.value) > 0 && checkInvariant(right);
-    }
-
     @Override
     public boolean remove(Object o) {
         if (o == null || root == null) return false;
@@ -69,14 +62,22 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     @Override
     public boolean addAll(Collection<? extends V> c) {
         for (V element : c) {
-            add(element);
+            if (!add(element)) return false;
         }
         return true;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public boolean retainAll(Collection<?> c) {
-        return false;
+        SplayTree<V> set = this;
+        List<V> retained = new ArrayList<>();
+        for (Object o: c){
+            if (contains(o)) retained.add((V) o);
+        }
+        clear();
+        addAll(retained);
+        return !equals(set);
     }
 
     @Override
@@ -163,12 +164,12 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     private void rightMoveToRoot(Node<V> parent, Node<V> node) {
         Node<V> right = node.right;
         node.right = parent;
-        parent.parent = node;
-        parent.left = right;
-        if (right != null) right.parent = parent;
         node.parent = null;
         root = node;
-
+        parent.parent = node;
+        parent.left = right;
+        if (right != null)
+            right.parent = parent;
     }
 
     private void leftMoveToRoot(Node<V> parent, Node<V> node) {
@@ -231,10 +232,10 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         rotateRight(gparent, node);
     }
 
-    private void setParent(Node<V> previousSon, Node<V> newSon) {
-        if (newSon.parent != null) {
-            if (previousSon.parent.left == previousSon) previousSon.parent.left = newSon;
-            else previousSon.parent.right = newSon;
+    private void setParent(Node<V> previous, Node<V> current) {
+        if (current.parent != null) {
+            if (previous.parent.left == previous) previous.parent.left = current;
+            else previous.parent.right = current;
         }
     }
 
@@ -262,11 +263,6 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     }
 
     @Override
-    public <T> T[] toArray(T[] a) {
-        return null;
-    }
-
-    @Override
     public int size() {
         return size;
     }
@@ -282,11 +278,6 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         V v = (V) o;
         Node<V> closest = find(v);
         return closest != null && closest.value.compareTo(v) == 0;
-    }
-
-    @Override
-    public Comparator<? super V> comparator() {
-        return null;
     }
 
     public class SplayTreeIterator implements Iterator<V> {
@@ -349,65 +340,17 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public SortedSet<V> subSet(V fromElement, V toElement) {
-        if (fromElement.compareTo(this.first()) < 0 || fromElement.compareTo(this.last()) > 0 ||
-                toElement.compareTo(this.first()) < 0 || toElement.compareTo(this.last()) > 0 ||
-                fromElement.compareTo(toElement) > 0)
-            throw new IllegalArgumentException();
-        return this.headSet(toElement).tailSet(fromElement);
+        return new SubSet<>(fromElement,toElement,this);
     }
 
     @Override
     public SortedSet<V> headSet(V toElement) {
-        if (toElement == null) throw new NullPointerException();
-        if (root == null) throw new NoSuchElementException();
-        Node<V> current = root;
-        SplayTree<V> newSet = new SplayTree<>();
-        while (toElement.compareTo(current.value) != 0) {
-            if (toElement.compareTo(current.value) > 0) {
-                newSet.add(current.value);
-                if (current.left != null) addBranch(current.left, newSet);
-                if (current.right != null) current = current.right;
-                else break;
-            } else {
-                if (current.left != null) current = current.left;
-                else break;
-            }
-        }
-        if (toElement.compareTo(current.value) == 0) {
-            if (current.left != null) addBranch(current.left, newSet);
-        }
-        return newSet;
+        return new SubSet<>(first(),toElement,this);
     }
 
     @Override
     public SortedSet<V> tailSet(V fromElement) {
-        if (fromElement == null) throw new NullPointerException();
-        if (root == null) throw new NoSuchElementException();
-        Node<V> current = root;
-        SplayTree<V> newSet = new SplayTree<>();
-        while (fromElement.compareTo(current.value) != 0) {
-            if (fromElement.compareTo(current.value) < 0) {
-                newSet.add(current.value);
-                if (current.right != null) addBranch(current.right, newSet);
-                if (current.left != null) current = current.left;
-                else
-                    break;
-            } else {
-                if (current.right != null) current = current.right;
-                else break;
-            }
-        }
-        if (fromElement.compareTo(current.value) == 0) {
-            newSet.add(current.value);
-            if (current.right != null) addBranch(current.right, newSet);
-        }
-        return newSet;
-    }
-
-    private void addBranch(Node<V> node, SplayTree<V> tree) {
-        tree.add(node.value);
-        if (node.left != null) addBranch(node.left, tree);
-        if (node.right != null) addBranch(node.right, tree);
+        return new TailSet<>(fromElement,this);
     }
 
     @Override
@@ -430,5 +373,10 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         }
         splay(current);
         return current.value;
+    }
+
+    @Override
+    public Comparator<? super V> comparator() {
+        return null;
     }
 }
