@@ -81,6 +81,8 @@ public class Tests {
     public void subSet() {
         splayints.addAll(ints);
         SortedSet<Integer> subset = splayints.subSet(9, 12);
+        assertEquals(Optional.of(11), Optional.of(subset.last()));
+        assertEquals(Optional.of(9), Optional.of(subset.first()));
         assertTrue(subset.size() == 3);
         //Inclusive
         assertTrue(subset.contains(9));
