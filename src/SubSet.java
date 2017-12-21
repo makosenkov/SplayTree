@@ -20,9 +20,10 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
     }
 
     @Override
-    public boolean remove(Object o){
+    public boolean remove(Object o) {
         @SuppressWarnings("unchecked")
         V value = (V) o;
+
         if ((toElement.compareTo(value) > 0 && fromElement.compareTo(value) <= 0) && contains(value))
             delegate.remove(value);
         else throw new IllegalArgumentException();
@@ -30,7 +31,7 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
     }
 
     @Override
-    public boolean add(V value){
+    public boolean add(V value) {
         delegate.add(value);
         return true;
     }
@@ -39,7 +40,7 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
     public boolean contains(Object o) {
         V value = (V) o;
         Iterator<V> iterator = this.iterator();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             if (value.compareTo(iterator.next()) == 0) return true;
         }
         return false;
@@ -76,6 +77,10 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
             return current;
         }
 
+        @Override
+        public void remove() {
+            iterator.remove();
+        }
     }
 
     @Override
@@ -98,7 +103,7 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
     public SortedSet<V> subSet(V fromElement, V toElement) {
         if (fromElement.compareTo(this.fromElement) >= 0 &&
                 toElement.compareTo(this.toElement) < 0)
-            return new SubSet<>(fromElement,toElement,delegate);
+            return new SubSet<>(fromElement, toElement, delegate);
         else throw new IndexOutOfBoundsException();
     }
 
@@ -106,7 +111,7 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
     public SortedSet<V> headSet(V toElement) {
         if (toElement.compareTo(this.fromElement) >= 0 &&
                 toElement.compareTo(this.toElement) < 0)
-            return new SubSet<>(this.fromElement,toElement,delegate);
+            return new SubSet<>(this.fromElement, toElement, delegate);
         else throw new IndexOutOfBoundsException();
     }
 
@@ -114,9 +119,8 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
     public SortedSet<V> tailSet(V fromElement) {
         if (fromElement.compareTo(this.fromElement) >= 0 &&
                 fromElement.compareTo(this.toElement) < 0) {
-            return new TailSet<>(fromElement, delegate);
-        }
-        else throw new IndexOutOfBoundsException();
+            return new SubSet<>(fromElement, null, delegate);
+        } else throw new IndexOutOfBoundsException();
     }
 
     @Override
@@ -128,4 +132,5 @@ public class SubSet<V extends Comparable<V>> extends AbstractSet<V> implements S
     public V last() {
         return toElement;
     }
+
 }

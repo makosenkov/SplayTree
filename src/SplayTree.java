@@ -61,10 +61,11 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public boolean addAll(Collection<? extends V> c) {
+        int result = 0;
         for (V element : c) {
-            if (!add(element)) return false;
+            if (add(element)) result++;
         }
-        return true;
+        return (result > 0);
     }
 
     @Override
@@ -283,12 +284,13 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
     public class SplayTreeIterator implements Iterator<V> {
 
         private Node<V> current = null;
+        Node<V> next = findNext();
 
         private Node<V> findNext() {
-            Node<V> next = current;
 
             if (next == null) {
                 next = first();
+
                 return next;
             }
 
@@ -333,7 +335,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
         @Override
         public void remove() {
-            SplayTree.this.remove(current);
+            SplayTree.this.remove(current.value);
         }
     }
 
@@ -345,12 +347,12 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
 
     @Override
     public SortedSet<V> headSet(V toElement) {
-        return new SubSet<>(first(),toElement,this);
+        return new SubSet<>(null,toElement,this);
     }
 
     @Override
     public SortedSet<V> tailSet(V fromElement) {
-        return new TailSet<>(fromElement,this);
+        return new SubSet<>(fromElement, null,this);
     }
 
     @Override
