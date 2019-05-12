@@ -54,6 +54,9 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         if (o == null || root == null) return false;
         @SuppressWarnings("unchecked")
         Node<V> it = find((V) o);
+        if (it == null) {
+            return false;
+        }
         root = merge(it.left, it.right);
         size--;
         return true;
@@ -382,6 +385,18 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         return null;
     }
 
+    @Override
+    public String toString() {
+        Iterator iterator = new SplayTreeIterator();
+        StringBuilder builder = new StringBuilder();
+        while (iterator.hasNext()) {
+            builder.append(iterator.next());
+            if (iterator.hasNext()) {
+                builder.append(", ");
+            }
+        }
+        return builder.toString();
+    }
 
 
 
@@ -425,9 +440,10 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
         @Override
         public boolean contains(Object o) {
             V value = (V) o;
-            Iterator<V> iterator = this.iterator();
-            while (iterator.hasNext()) {
-                if (value.compareTo(iterator.next()) == 0) return true;
+            for (V v : this) {
+                if (value.compareTo(v) == 0) {
+                    return true;
+                }
             }
             return false;
         }
@@ -439,6 +455,9 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
             V next = findNext();
 
             private V findNext() {
+                if (fromElement != null) {
+                    next = fromElement;
+                }
                 while (iterator.hasNext()) {
                     V nextElement = iterator.next();
                     if (checkBounds(nextElement)) {
@@ -537,9 +556,7 @@ public class SplayTree<V extends Comparable<V>> extends AbstractSet<V> implement
                 return (toElement.compareTo(value) > 0 && fromElement.compareTo(value) <= 0);
             else if (fromElement == null)
                 return (toElement.compareTo(value) > 0);
-            else if (toElement == null)
-                return (fromElement.compareTo(value) <= 0);
-            else throw new IllegalArgumentException();
+            else return (fromElement.compareTo(value) <= 0);
         }
     }
 }
